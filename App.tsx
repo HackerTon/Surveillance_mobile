@@ -8,18 +8,20 @@
 
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
-import React, {useEffect, useState} from 'react';
-import {Text, View, Button, StatusBar} from 'react-native';
-import * as Mqtt from 'react-native-native-mqtt';
-import Realm, {List} from 'realm';
 import {Buffer} from 'buffer';
+import React, {useEffect, useState} from 'react';
+import {Platform, Text, View} from 'react-native';
+import {Button} from 'react-native-elements';
 import {ListItem} from 'react-native-elements';
 import {ScrollView} from 'react-native-gesture-handler';
+import * as Mqtt from 'react-native-native-mqtt';
+import Realm, {List} from 'realm';
+import Notificator from './notification';
 
 const Msg = {
   name: 'Msg',
   properties: {
-    timecode: 'string',
+    timecode: 'int',
     msg: 'string',
   },
 };
@@ -42,11 +44,13 @@ const Expander = (props: any) => {
       {objects.map((value) => {
         const {timecode, msg} = value;
 
+        const time_text = new Date(timecode).toLocaleTimeString('en-US');
+
         return (
-          <ListItem key={timecode} bottomDivider>
+          <ListItem style={{paddingBottom: 5}} key={timecode} bottomDivider>
             <ListItem.Content>
               <ListItem.Title>{msg}</ListItem.Title>
-              <ListItem.Subtitle>{timecode}</ListItem.Subtitle>
+              <ListItem.Subtitle>{time_text}</ListItem.Subtitle>
             </ListItem.Content>
           </ListItem>
         );
@@ -70,13 +74,14 @@ const Home = ({route, navigation}) => {
     }).then((realm) => {
       db = realm;
       setRealdb(realm);
+
       setData(realm.objects('Msg'));
     });
 
     try {
       client.connect(
         {
-          clientId: 'PHONE',
+          clientId: `${Math.floor(Math.random() * 1000)}_PHONE`,
           username: 'hackerton',
           password: 'hackerton',
           autoReconnect: true,
@@ -86,8 +91,7 @@ const Home = ({route, navigation}) => {
     } catch (error) {}
 
     client.on(Mqtt.Event.Error, (error) => {
-      console.error('Error Message:', error);
-      alert(`Error message ${error}`);
+      console.log('Error Message:', error);
     });
 
     client.on(Mqtt.Event.Connect, () => {
@@ -96,17 +100,20 @@ const Home = ({route, navigation}) => {
     });
 
     client.on(Mqtt.Event.Message, (topic, message) => {
+      console.log(`Received packet ${topic}`);
       if (topic === 'esptest/1') {
         try {
           const pack = {
-            timecode: new Date().toLocaleString('en-US'),
+            timecode: Date.now(),
             msg: message.toString(),
           };
 
           db.write(() => {
             db.create('Msg', pack);
           });
+
           setData([...db.objects('Msg')]);
+          Notificator.notify(pack);
         } catch (e) {
           console.log(`Error on creation ${e}`);
         }
@@ -116,25 +123,28 @@ const Home = ({route, navigation}) => {
 
   const list_item = realdb ? data : null;
 
+  let style = {width: '50%', paddingVertical: 10};
+
   return (
-    <View>
-      <ScrollView>
-        <Expander objects={list_item} />
+    <ScrollView>
+      <View style={{flex: 1, flexDirection: 'row'}}>
         <Button
-          title="WRITE MQTT"
-          onPress={() => {
-            client.publish(
-              'esptest/2',
-              encode_mqtt(JSON.stringify({name: 'alan'})),
-            );
-          }}
+          containerStyle={{...style, paddingLeft: 10}}
+          title="Empty Button"
         />
         <Button
-          title="WRITE DB"
-          onPress={() => write(Date.now().toString(), 'message')}
+          containerStyle={{...style, paddingHorizontal: 10}}
+          title="Clear Notification"
+          onPress={() =>
+            realdb.write(() => {
+              realdb.deleteAll();
+              setData([...realdb.objects('Msg')]);
+            })
+          }
         />
-      </ScrollView>
-    </View>
+      </View>
+      <Expander objects={list_item} />
+    </ScrollView>
   );
 };
 
