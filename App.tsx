@@ -1,22 +1,21 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Buffer} from 'buffer';
 import React, {useEffect, useState} from 'react';
-import {Platform, Text, View} from 'react-native';
-import {Button} from 'react-native-elements';
-import {ListItem} from 'react-native-elements';
+import {StatusBar, Text, View} from 'react-native';
+import {Button, ListItem, ThemeProvider} from 'react-native-elements';
 import {ScrollView} from 'react-native-gesture-handler';
 import * as Mqtt from 'react-native-native-mqtt';
 import Realm, {List} from 'realm';
 import Notificator from './notification';
+
+const theme = {
+  Button: {
+    containerStyle: {width: 200, borderColor: 'grey', borderWidth: 1},
+    titleStyle: {color: 'white'},
+    type: 'clear',
+  },
+};
 
 const Msg = {
   name: 'Msg',
@@ -27,6 +26,7 @@ const Msg = {
 };
 
 const Stack = createStackNavigator();
+const client = new Mqtt.Client('tcp://broker.hivemq.com:1883');
 
 function encode_mqtt(value: string) {
   return Buffer.from(value);
@@ -46,8 +46,17 @@ const Expander = (props: any) => {
 
         const time_text = new Date(timecode).toLocaleTimeString('en-US');
 
+        const style = {
+          'border-radius': 10,
+          // display: 'inline-block',
+          paddingBottom: 10,
+          'box-shadow':
+            '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
+          transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
+        };
+
         return (
-          <ListItem style={{paddingBottom: 5}} key={timecode} bottomDivider>
+          <ListItem style={style} key={timecode} bottomDivider>
             <ListItem.Content>
               <ListItem.Title>{msg}</ListItem.Title>
               <ListItem.Subtitle>{time_text}</ListItem.Subtitle>
@@ -59,26 +68,18 @@ const Expander = (props: any) => {
   );
 };
 
-const Home = ({route, navigation}) => {
-  const [client, _] = useState(new Mqtt.Client('tcp://broker.hivemq.com:1883'));
-
+const Home = () => {
   const [realdb, setRealdb] = useState();
   const [data, setData] = useState([]);
 
   // Initialize Mqtt Client
   useEffect(() => {
-    var db = null;
-
     Realm.open({
       schema: [Msg],
     }).then((realm) => {
-      db = realm;
       setRealdb(realm);
-
       setData(realm.objects('Msg'));
-    });
 
-    try {
       client.connect(
         {
           clientId: `${Math.floor(Math.random() * 1000)}_PHONE`,
@@ -88,60 +89,53 @@ const Home = ({route, navigation}) => {
         },
         (err) => {},
       );
-    } catch (error) {}
 
-    client.on(Mqtt.Event.Error, (error) => {
-      console.log('Error Message:', error);
-    });
+      client.on(Mqtt.Event.Error, (error) => {
+        console.log('Error Message:', error);
+      });
 
-    client.on(Mqtt.Event.Connect, () => {
-      console.log('Mqtt Connect');
-      client.subscribe(['esptest/1'], [0]);
-    });
+      client.on(Mqtt.Event.Connect, () => {
+        console.log('Mqtt Connect');
+        client.subscribe(['esptest/1'], [0]);
+      });
 
-    client.on(Mqtt.Event.Message, (topic, message) => {
-      console.log(`Received packet ${topic}`);
-      if (topic === 'esptest/1') {
-        try {
-          const pack = {
-            timecode: Date.now(),
-            msg: message.toString(),
-          };
-
-          db.write(() => {
-            db.create('Msg', pack);
+      client.on(Mqtt.Event.Message, (topic, message) => {
+        console.log(`Received packet ${topic}`);
+        if (topic === 'esptest/1') {
+          realm.write(() => {
+            realm.create('Msg', {
+              timecode: Date.now(),
+              msg: message.toString(),
+            });
+            setData(realm.objects('Msg'));
           });
-
-          setData([...db.objects('Msg')]);
-          Notificator.notify(pack);
-        } catch (e) {
-          console.log(`Error on creation ${e}`);
         }
-      }
+      });
     });
   }, []);
 
+  const ClearHistory = () => {
+    realdb!.write(() => {
+      realdb!.deleteAll();
+      setData([...realdb.objects('Msg')]);
+    });
+  };
+
   const list_item = realdb ? data : null;
 
-  let style = {width: '50%', paddingVertical: 10};
-
   return (
-    <ScrollView>
-      <View style={{flex: 1, flexDirection: 'row'}}>
-        <Button
-          containerStyle={{...style, paddingLeft: 10}}
-          title="Empty Button"
-        />
-        <Button
-          containerStyle={{...style, paddingHorizontal: 10}}
-          title="Clear Notification"
-          onPress={() =>
-            realdb.write(() => {
-              realdb.deleteAll();
-              setData([...realdb.objects('Msg')]);
-            })
-          }
-        />
+    <ScrollView style={{backgroundColor: '#191919'}}>
+      <View
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+        }}>
+        <View>
+          <Button title="Empty Button" />
+        </View>
+        <View>
+          <Button title="Clear Notification" onPress={ClearHistory} />
+        </View>
       </View>
       <Expander objects={list_item} />
     </ScrollView>
@@ -149,19 +143,19 @@ const Home = ({route, navigation}) => {
 };
 
 function Register({navigation}) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    console.log('MOUNT ' + count);
-    setCount(1);
-  }, []);
-
-  console.log('count' + count);
-
   return (
-    <View>
-      <Text>{count}</Text>
-      <Button title="Count Increment" onPress={() => setCount(count + 1)} />
+    <View
+      style={{
+        backgroundColor: '#191919',
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+      <Button
+        title="Count Increment"
+        onPress={() => navigation.navigate('Home')}
+      />
     </View>
   );
 }
@@ -169,13 +163,27 @@ function Register({navigation}) {
 function App() {
   const [route, setRoute] = useState('Home');
 
+  console.log('Render App');
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName={route}>
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="Register" component={Register} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <ThemeProvider theme={theme}>
+      <NavigationContainer>
+        <StatusBar backgroundColor="black" />
+        <Stack.Navigator
+          initialRouteName={route}
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: '#0D0D0D',
+            },
+            headerTitleStyle: {
+              color: 'white',
+            },
+          }}>
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="Register" component={Register} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }
 
