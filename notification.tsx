@@ -29,8 +29,6 @@ class Notification {
       vibration: 300,
       playSound: true,
       soundName: 'default',
-      priority: 'high',
-      importance: 'high',
     });
   }
 }

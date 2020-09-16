@@ -8,6 +8,7 @@ import {ScrollView} from 'react-native-gesture-handler';
 import * as Mqtt from 'react-native-native-mqtt';
 import Realm, {List} from 'realm';
 import Notificator from './notification';
+import moment from 'moment';
 
 const theme = {
   Button: {
@@ -44,7 +45,7 @@ const Expander = (props: any) => {
       {objects.map((value) => {
         const {timecode, msg} = value;
 
-        const time_text = new Date(timecode).toLocaleTimeString('en-US');
+        const time_text = moment(timecode).format('lll')
 
         const style = {
           'border-radius': 10,
@@ -87,15 +88,17 @@ const Home = () => {
           password: 'hackerton',
           autoReconnect: true,
         },
-        (err) => {},
+        (error) => {
+          console.log(`MQTT Connect: ${error}`);
+        },
       );
 
       client.on(Mqtt.Event.Error, (error) => {
-        console.log('Error Message:', error);
+        console.log('MQTT Error Event:', error);
       });
 
       client.on(Mqtt.Event.Connect, () => {
-        console.log('Mqtt Connect');
+        console.log('MQTT Connect Event');
         client.subscribe(['esptest/1'], [0]);
       });
 
@@ -148,10 +151,15 @@ function Register({navigation}) {
       style={{
         backgroundColor: '#191919',
         flex: 1,
-        flexDirection: 'row',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
       }}>
+      <View style={{padding: 10}}>
+        <Text style={{fontSize: 20, color: 'white', fontWeight: 'bold'}}>
+          HELLO THERE {moment().format('lll')}
+        </Text>
+      </View>
       <Button
         title="Count Increment"
         onPress={() => navigation.navigate('Home')}
@@ -161,7 +169,7 @@ function Register({navigation}) {
 }
 
 function App() {
-  const [route, setRoute] = useState('Home');
+  const [route, setRoute] = useState('Register');
 
   console.log('Render App');
 
