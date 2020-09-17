@@ -2,9 +2,9 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Buffer} from 'buffer';
 import React, {useEffect, useState} from 'react';
-import {StatusBar, Text, View} from 'react-native';
+import {Keyboard, StatusBar, Text, View} from 'react-native';
 import {Button, ListItem, ThemeProvider} from 'react-native-elements';
-import {ScrollView} from 'react-native-gesture-handler';
+import {FlatList, ScrollView} from 'react-native-gesture-handler';
 import * as Mqtt from 'react-native-native-mqtt';
 import Realm, {List} from 'realm';
 import Notificator from './notification';
@@ -34,38 +34,51 @@ function encode_mqtt(value: string) {
 }
 
 const Expander = (props: any) => {
-  const objects: List<any> = props.objects;
+  const {objects, ListFooterComponent} = props;
 
   if (objects == null) {
     return <Text>loading</Text>;
   }
 
+  const style = {color: 'white', fontSize: 20};
+
+  const keyExtractor = (item, index) => index.toString();
+
+  const renderItem = ({item}) => (
+    <ListItem bottomDivider containerStyle={{backgroundColor: '#191919'}}>
+      <ListItem.Content>
+        <ListItem.Title style={style}>{item.msg}</ListItem.Title>
+        <ListItem.Subtitle style={style}>
+          {moment(item.timecode).format('llll')}
+        </ListItem.Subtitle>
+      </ListItem.Content>
+    </ListItem>
+  );
+
+  const EmptyList = ({}) => {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+        <Text style={{color: 'white', fontSize: 20, fontWeight: 'bold'}}>
+          No notification
+        </Text>
+      </View>
+    );
+  };
+
   return (
-    <View>
-      {objects.map((value) => {
-        const {timecode, msg} = value;
-
-        const time_text = moment(timecode).format('lll')
-
-        const style = {
-          'border-radius': 10,
-          // display: 'inline-block',
-          paddingBottom: 10,
-          'box-shadow':
-            '0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)',
-          transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
-        };
-
-        return (
-          <ListItem style={style} key={timecode} bottomDivider>
-            <ListItem.Content>
-              <ListItem.Title>{msg}</ListItem.Title>
-              <ListItem.Subtitle>{time_text}</ListItem.Subtitle>
-            </ListItem.Content>
-          </ListItem>
-        );
-      })}
-    </View>
+    <FlatList
+      keyExtractor={keyExtractor}
+      data={objects}
+      renderItem={renderItem}
+      ListEmptyComponent={EmptyList}
+      ListFooterComponent={ListFooterComponent}
+      contentContainerStyle={{minHeight: '100%'}}
+    />
   );
 };
 
@@ -75,6 +88,7 @@ const Home = () => {
 
   // Initialize Mqtt Client
   useEffect(() => {
+    console.log('RENDER EFFECT');
     Realm.open({
       schema: [Msg],
     }).then((realm) => {
@@ -86,7 +100,7 @@ const Home = () => {
           clientId: `${Math.floor(Math.random() * 1000)}_PHONE`,
           username: 'hackerton',
           password: 'hackerton',
-          autoReconnect: true,
+          // autoReconnect: true,
         },
         (error) => {
           console.log(`MQTT Connect: ${error}`);
@@ -99,22 +113,29 @@ const Home = () => {
 
       client.on(Mqtt.Event.Connect, () => {
         console.log('MQTT Connect Event');
-        client.subscribe(['esptest/1'], [0]);
+        client.subscribe(['esptest/1'], [2]);
       });
 
       client.on(Mqtt.Event.Message, (topic, message) => {
         console.log(`Received packet ${topic}`);
         if (topic === 'esptest/1') {
           realm.write(() => {
-            realm.create('Msg', {
+            const pack = {
               timecode: Date.now(),
               msg: message.toString(),
-            });
-            setData(realm.objects('Msg'));
+            };
+            realm.create('Msg', pack);
+            setData([...realm.objects('Msg')].reverse());
+            Notificator.notify(pack);
           });
         }
       });
     });
+
+    return function cleanup() {
+      console.log('Cleanup');
+      client.disconnect();
+    };
   }, []);
 
   const ClearHistory = () => {
@@ -127,21 +148,17 @@ const Home = () => {
   const list_item = realdb ? data : null;
 
   return (
-    <ScrollView style={{backgroundColor: '#191919'}}>
-      <View
-        style={{
-          flex: 1,
-          flexDirection: 'row',
-        }}>
-        <View>
-          <Button title="Empty Button" />
-        </View>
-        <View>
-          <Button title="Clear Notification" onPress={ClearHistory} />
-        </View>
-      </View>
-      <Expander objects={list_item} />
-    </ScrollView>
+    <View style={{backgroundColor: '#191919'}}>
+      <Expander
+        objects={list_item}
+        ListFooterComponent={
+          <View style={{flex: 1, flexDirection: 'row'}}>
+            <Button title="Empty Button" />
+            <Button title="Clear Notification" onPress={ClearHistory} />
+          </View>
+        }
+      />
+    </View>
   );
 };
 
@@ -169,7 +186,7 @@ function Register({navigation}) {
 }
 
 function App() {
-  const [route, setRoute] = useState('Register');
+  const [route, setRoute] = useState('Home');
 
   console.log('Render App');
 
