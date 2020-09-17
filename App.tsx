@@ -12,7 +12,7 @@ import moment from 'moment';
 
 const theme = {
   Button: {
-    containerStyle: {width: 200, borderColor: 'grey', borderWidth: 1},
+    containerStyle: {width: '50%', borderColor: 'grey', borderWidth: 1},
     titleStyle: {color: 'white'},
     type: 'clear',
   },
@@ -77,7 +77,7 @@ const Expander = (props: any) => {
       renderItem={renderItem}
       ListEmptyComponent={EmptyList}
       ListFooterComponent={ListFooterComponent}
-      contentContainerStyle={{minHeight: '100%'}}
+      contentContainerStyle={{minHeight: '50%'}}
     />
   );
 };
@@ -148,16 +148,16 @@ const Home = () => {
   const list_item = realdb ? data : null;
 
   return (
-    <View style={{backgroundColor: '#191919'}}>
-      <Expander
-        objects={list_item}
-        ListFooterComponent={
-          <View style={{flex: 1, flexDirection: 'row'}}>
-            <Button title="Empty Button" />
-            <Button title="Clear Notification" onPress={ClearHistory} />
-          </View>
-        }
-      />
+    <View
+      style={{backgroundColor: '#191919', flex: 1, flexDirection: 'column'}}>
+      <View style={{height: '93.5%'}}>
+        <Expander objects={list_item} />
+      </View>
+
+      <View style={{flexDirection: 'row'}}>
+        <Button title="Clear Notification" onPress={ClearHistory} />
+        <Button title="Empty Button" />
+      </View>
     </View>
   );
 };

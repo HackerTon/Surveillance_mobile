@@ -1,5 +1,6 @@
 import {Platform} from 'react-native';
 import PushNotification from 'react-native-push-notification';
+import moment from 'moment'
 
 class Notification {
   onAction() {
@@ -16,8 +17,7 @@ class Notification {
 
   notify({msg, timecode}) {
     const disp_msg = msg ? msg : 'null';
-    const date = new Date(timecode);
-    const disp_timecode = timecode ? date.toLocaleTimeString() : 'null';
+    const disp_timecode = timecode ? moment(timecode).format('LT') : 'null';
 
     PushNotification.localNotification({
       autoCancel: true,
