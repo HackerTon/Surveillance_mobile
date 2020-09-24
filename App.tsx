@@ -1,18 +1,18 @@
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Buffer} from 'buffer';
-import React, {useEffect, useState} from 'react';
-import {Keyboard, StatusBar, Text, View} from 'react-native';
-import {Button, ListItem, ThemeProvider} from 'react-native-elements';
-import {FlatList, ScrollView} from 'react-native-gesture-handler';
-import * as Mqtt from 'react-native-native-mqtt';
-import Realm, {List} from 'realm';
-import Notificator from './notification';
 import moment from 'moment';
+import React, {useEffect, useState} from 'react';
+import {StatusBar, Text, View} from 'react-native';
+import {Button, ListItem, ThemeProvider} from 'react-native-elements';
+import {FlatList} from 'react-native-gesture-handler';
+import * as Mqtt from 'react-native-native-mqtt';
+import Realm from 'realm';
+import Notificator from './notification';
 
 const theme = {
   Button: {
-    containerStyle: {width: '50%', borderColor: 'grey', borderWidth: 1},
+    containerStyle: {borderColor: 'grey', borderWidth: 1},
     titleStyle: {color: 'white'},
     type: 'clear',
   },
@@ -41,11 +41,15 @@ const Expander = (props: any) => {
   }
 
   const style = {color: 'white', fontSize: 20};
-
-  const keyExtractor = (item, index) => index.toString();
-
+  const keyExtractor = (_, index) => index.toString();
   const renderItem = ({item}) => (
-    <ListItem bottomDivider containerStyle={{backgroundColor: '#191919'}}>
+    <ListItem
+      containerStyle={{
+        backgroundColor: '#191919',
+        margin: 10,
+        borderWidth: 2,
+        borderColor: 'white',
+      }}>
       <ListItem.Content>
         <ListItem.Title style={style}>{item.msg}</ListItem.Title>
         <ListItem.Subtitle style={style}>
@@ -63,7 +67,7 @@ const Expander = (props: any) => {
           justifyContent: 'center',
           alignItems: 'center',
         }}>
-        <Text style={{color: 'white', fontSize: 20, fontWeight: 'bold'}}>
+        <Text style={{color: 'white', fontSize: 25, fontWeight: 'bold'}}>
           No notification
         </Text>
       </View>
@@ -77,7 +81,7 @@ const Expander = (props: any) => {
       renderItem={renderItem}
       ListEmptyComponent={EmptyList}
       ListFooterComponent={ListFooterComponent}
-      contentContainerStyle={{minHeight: '50%'}}
+      contentContainerStyle={{minHeight: '100%'}}
     />
   );
 };
@@ -88,7 +92,6 @@ const Home = () => {
 
   // Initialize Mqtt Client
   useEffect(() => {
-    console.log('RENDER EFFECT');
     Realm.open({
       schema: [Msg],
     }).then((realm) => {
@@ -97,7 +100,7 @@ const Home = () => {
 
       client.connect(
         {
-          clientId: `${Math.floor(Math.random() * 1000)}_PHONE`,
+          clientId: client.id,
           username: 'hackerton',
           password: 'hackerton',
           // autoReconnect: true,
@@ -146,49 +149,36 @@ const Home = () => {
   };
 
   const list_item = realdb ? data : null;
-
   return (
-    <View
-      style={{backgroundColor: '#191919', flex: 1, flexDirection: 'column'}}>
-      <View style={{height: '93.5%'}}>
+    <>
+      <View style={{flex: 1, backgroundColor: '#191919'}}>
         <Expander objects={list_item} />
       </View>
-
-      <View style={{flexDirection: 'row'}}>
-        <Button title="Clear Notification" onPress={ClearHistory} />
-        <Button title="Empty Button" />
+      <View
+        style={{
+          flex: 0,
+          flexDirection: 'row',
+          backgroundColor: '#191919',
+          justifyContent: 'space-around',
+        }}>
+        <Button
+          containerStyle={{margin: 15}}
+          title="Clear Notification"
+          onPress={ClearHistory}
+        />
       </View>
-    </View>
+    </>
   );
 };
 
-function Register({navigation}) {
-  return (
-    <View
-      style={{
-        backgroundColor: '#191919',
-        flex: 1,
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-      <View style={{padding: 10}}>
-        <Text style={{fontSize: 20, color: 'white', fontWeight: 'bold'}}>
-          HELLO THERE {moment().format('lll')}
-        </Text>
-      </View>
-      <Button
-        title="Count Increment"
-        onPress={() => navigation.navigate('Home')}
-      />
-    </View>
-  );
-}
-
 function App() {
-  const [route, setRoute] = useState('Home');
+  const [route, setRoute] = useState('Register');
 
-  console.log('Render App');
+  const LeftHeader = () => (
+    <Text style={{color: 'white', fontSize: 20, fontWeight: 'bold'}}>
+      Farmzer
+    </Text>
+  );
 
   return (
     <ThemeProvider theme={theme}>
@@ -203,9 +193,9 @@ function App() {
             headerTitleStyle: {
               color: 'white',
             },
+            headerTitle: LeftHeader,
           }}>
           <Stack.Screen name="Home" component={Home} />
-          <Stack.Screen name="Register" component={Register} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
