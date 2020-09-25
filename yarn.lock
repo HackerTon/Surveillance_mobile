@@ -6177,6 +6177,11 @@ react-native-native-mqtt@^0.1.8:
     random-id "^1.0.3"
     tiny-emitter "^2.1.0"
 
+react-native-notifications@^3.3.4:
+  version "3.3.4"
+  resolved "https://registry.yarnpkg.com/react-native-notifications/-/react-native-notifications-3.3.4.tgz#ade029e623380113f06f8d5b7759ad36e27c9566"
+  integrity sha512-oJuuUxKh/82HI7kgWUBlxf3d0/ngfX1Lp1meeESySA6u0I+jeTS0EOPDAVD6bGrfAywCi3d4elY7QbGTy6MWGQ==
+
 react-native-push-notification@^5.1.1:
   version "5.1.1"
   resolved "https://registry.yarnpkg.com/react-native-push-notification/-/react-native-push-notification-5.1.1.tgz#104572ddc8c73b1a3a95c90e26d05800c51b12c5"

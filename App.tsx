@@ -103,7 +103,7 @@ const Home = () => {
           clientId: client.id,
           username: 'hackerton',
           password: 'hackerton',
-          // autoReconnect: true,
+          autoReconnect: true,
         },
         (error) => {
           console.log(`MQTT Connect: ${error}`);
