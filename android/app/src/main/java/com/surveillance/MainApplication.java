@@ -1,5 +1,6 @@
 package com.surveillance;
 
+import com.wix.reactnativenotifications.RNNotificationsPackage;
 import android.app.Application;
 import android.content.Context;
 import com.facebook.react.PackageList;

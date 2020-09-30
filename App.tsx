@@ -3,12 +3,13 @@ import {createStackNavigator} from '@react-navigation/stack';
 import {Buffer} from 'buffer';
 import moment from 'moment';
 import React, {useEffect, useState} from 'react';
-import {StatusBar, Text, View} from 'react-native';
+import {Alert, StatusBar, Text, View} from 'react-native';
 import {Button, ListItem, ThemeProvider} from 'react-native-elements';
 import {FlatList} from 'react-native-gesture-handler';
 import * as Mqtt from 'react-native-native-mqtt';
 import Realm from 'realm';
 import Notificator from './notification';
+import {Notification, Notifications} from 'react-native-notifications';
 
 const theme = {
   Button: {
@@ -116,12 +117,12 @@ const Home = () => {
 
       client.on(Mqtt.Event.Connect, () => {
         console.log('MQTT Connect Event');
-        client.subscribe(['esptest/1'], [2]);
+        client.subscribe(['prodnotif/1'], [2]);
       });
 
       client.on(Mqtt.Event.Message, (topic, message) => {
         console.log(`Received packet ${topic}`);
-        if (topic === 'esptest/1') {
+        if (topic === 'prodnotif/1') {
           realm.write(() => {
             const pack = {
               timecode: Date.now(),
@@ -148,6 +149,16 @@ const Home = () => {
     });
   };
 
+  const OnSecurity = () => {
+    client.publish('prodnotif/1', Buffer.from('O'), 2);
+    Alert.alert('Security ON');
+  };
+
+  const OffSecurity = () => {
+    client.publish('prodnotif/1', Buffer.from('F'), 2);
+    Alert.alert('Security OFF');
+  };
+
   const list_item = realdb ? data : null;
   return (
     <>
@@ -166,6 +177,12 @@ const Home = () => {
           title="Clear Notification"
           onPress={ClearHistory}
         />
+        <Button containerStyle={{margin: 15}} title="ON" onPress={OnSecurity} />
+        <Button
+          containerStyle={{margin: 15}}
+          title="OFF"
+          onPress={OffSecurity}
+        />
       </View>
     </>
   );
@@ -173,6 +190,22 @@ const Home = () => {
 
 function App() {
   const [route, setRoute] = useState('Register');
+
+  // initialization for react native notification
+  useEffect(() => {
+    Notifications.registerRemoteNotifications();
+
+    Notifications.events().registerRemoteNotificationsRegistered((event) => {
+      console.log(event.deviceToken);
+    });
+
+    Notifications.events().registerNotificationReceivedForeground(
+      (notification: Notification, completion) => {
+        console.log('Notification received');
+        completion({alert: false, sound: false, badge: false});
+      },
+    );
+  }, []);
 
   const LeftHeader = () => (
     <Text style={{color: 'white', fontSize: 20, fontWeight: 'bold'}}>

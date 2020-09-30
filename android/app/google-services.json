@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "511869980746",
+    "firebase_url": "https://farmzer-f3bef.firebaseio.com",
+    "project_id": "farmzer-f3bef",
+    "storage_bucket": "farmzer-f3bef.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:511869980746:android:5d2f4d76d15bcd3cb956b3",
+        "android_client_info": {
+          "package_name": "com.surveillance"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "511869980746-mlt3cjtd0as769m23lj6ttfp6hds4qnk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9ptAuvi93DY7yDu-LKyZ6jwkqdprZ0Rw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "511869980746-mlt3cjtd0as769m23lj6ttfp6hds4qnk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
