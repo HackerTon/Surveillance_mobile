@@ -1,3 +1,4 @@
+import firestore from '@react-native-firebase/firestore';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import {Buffer} from 'buffer';
@@ -7,9 +8,7 @@ import {Alert, StatusBar, Text, View} from 'react-native';
 import {Button, ListItem, ThemeProvider} from 'react-native-elements';
 import {FlatList} from 'react-native-gesture-handler';
 import * as Mqtt from 'react-native-native-mqtt';
-import Realm from 'realm';
 import {Notification, Notifications} from 'react-native-notifications';
-import firestore from '@react-native-firebase/firestore';
 
 const theme = {
   Button: {
@@ -28,7 +27,7 @@ const Msg = {
 };
 
 const Stack = createStackNavigator();
-const client = new Mqtt.Client('tcp://broker.hivemq.com:1883');
+const client = new Mqtt.Client('tcp://appservers.ddns.net:1883');
 
 function encode_mqtt(value: string) {
   return Buffer.from(value);
@@ -60,7 +59,7 @@ const Expander = (props: any) => {
     </ListItem>
   );
 
-  const EmptyList = ({}) => {
+  const EmptyList = () => {
     return (
       <View
         style={{
@@ -88,64 +87,67 @@ const Expander = (props: any) => {
 };
 
 const Home = () => {
-  const [realdb, setRealdb] = useState();
   const [data, setData] = useState([]);
 
   // Initialize Mqtt Client
   useEffect(() => {
-    Realm.open({
-      schema: [Msg],
-    }).then((realm) => {
-      setRealdb(realm);
-      setData(realm.objects('Msg'));
+    InsertData();
+    AddFireListeners();
 
-      client.connect(
-        {
-          clientId: client.id,
-          username: 'hackerton',
-          password: 'hackerton',
-          autoReconnect: true,
-        },
-        (error) => {
-          console.log(`MQTT Connect: ${error}`);
-        },
-      );
+    client.connect(
+      {
+        clientId: client.id,
+        username: 'hackerton',
+        password: 'hackerton',
+        autoReconnect: true,
+      },
+      (error) => {
+        console.log(`MQTT Connect: ${error}`);
+      },
+    );
 
-      client.on(Mqtt.Event.Error, (error) => {
-        console.log('MQTT Error Event:', error);
-      });
+    console.log(client);
 
-      client.on(Mqtt.Event.Connect, () => {
-        console.log('MQTT Connect Event');
-        client.subscribe(['prodnotif/1'], [2]);
-      });
-
-      client.on(Mqtt.Event.Message, (topic, message) => {
-        console.log(`Received packet ${topic}`);
-        if (topic === 'prodnotif/1') {
-          realm.write(() => {
-            const pack = {
-              timecode: Date.now(),
-              msg: message.toString(),
-            };
-            realm.create('Msg', pack);
-            setData([...realm.objects('Msg')].reverse());
-          });
-        }
-      });
+    client.on(Mqtt.Event.Error, (error) => {
+      console.log('MQTT Error Event:', error);
     });
 
-    return function cleanup() {
-      console.log('Cleanup');
-      client.disconnect();
-    };
+    // return function cleanup() {
+    //   console.log('Cleanup');
+    //   client.disconnect();
+    // };
   }, []);
 
+  const InsertData = () => {
+    firestore()
+      .collection('notification')
+      .get()
+      .then((snapshot) => {
+        let array = [];
+
+        snapshot.forEach((document) => {
+          array.push(document.data());
+        });
+
+        setData([...array]);
+      });
+  };
+
+  const AddFireListeners = () => {
+    const observer = firestore()
+      .collection('notification')
+      .onSnapshot((snapshot) => {
+        InsertData();
+      });
+  };
+
   const ClearHistory = () => {
-    realdb!.write(() => {
-      realdb!.deleteAll();
-      setData([...realdb.objects('Msg')]);
-    });
+    firestore()
+      .collection('notification')
+      .get()
+      .then((snapshot) => {
+        snapshot.forEach((document) => document.ref.delete());
+      });
   };
 
   const OnSecurity = () => {
@@ -158,7 +160,7 @@ const Home = () => {
     Alert.alert('Security OFF');
   };
 
-  const list_item = realdb ? data : null;
+  const list_item = data ? data : null;
   return (
     <>
       <View style={{flex: 1, backgroundColor: '#191919'}}>
