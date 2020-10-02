@@ -8,8 +8,8 @@ import {Button, ListItem, ThemeProvider} from 'react-native-elements';
 import {FlatList} from 'react-native-gesture-handler';
 import * as Mqtt from 'react-native-native-mqtt';
 import Realm from 'realm';
-import Notificator from './notification';
 import {Notification, Notifications} from 'react-native-notifications';
+import firestore from '@react-native-firebase/firestore';
 
 const theme = {
   Button: {
@@ -130,7 +130,6 @@ const Home = () => {
             };
             realm.create('Msg', pack);
             setData([...realm.objects('Msg')].reverse());
-            Notificator.notify(pack);
           });
         }
       });
@@ -196,13 +195,30 @@ function App() {
     Notifications.registerRemoteNotifications();
 
     Notifications.events().registerRemoteNotificationsRegistered((event) => {
-      console.log(event.deviceToken);
+      // store token in firestore
+      const collection = firestore().collection('users');
+      collection
+        .doc(event.deviceToken)
+        .set({token: event.deviceToken})
+        .then(() => {
+          console.log('Registered with FCM');
+        })
+        .catch((err) => {
+          console.log('Notification Registration Error: ', err);
+        });
     });
 
     Notifications.events().registerNotificationReceivedForeground(
       (notification: Notification, completion) => {
         console.log('Notification received');
-        completion({alert: false, sound: false, badge: false});
+        completion({alert: true, sound: false, badge: false});
+      },
+    );
+
+    Notifications.events().registerNotificationOpened(
+      (Notification: Notification, completion) => {
+        console.log('Notificated received when on');
+        completion();
       },
     );
   }, []);
