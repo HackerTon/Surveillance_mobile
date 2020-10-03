@@ -121,6 +121,7 @@ const Home = () => {
   const InsertData = () => {
     firestore()
       .collection('notification')
+      .orderBy('timecode', 'desc')
       .get()
       .then((snapshot) => {
         let array = [];
@@ -134,7 +135,7 @@ const Home = () => {
   };
 
   const AddFireListeners = () => {
-    const observer = firestore()
+    firestore()
       .collection('notification')
       .onSnapshot((snapshot) => {
         InsertData();
