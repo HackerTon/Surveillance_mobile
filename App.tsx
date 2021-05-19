@@ -9,6 +9,7 @@ import {Button, ListItem, ThemeProvider} from 'react-native-elements';
 import {FlatList} from 'react-native-gesture-handler';
 import * as Mqtt from 'react-native-native-mqtt';
 import {Notification, Notifications} from 'react-native-notifications';
+import Snackbar from 'react-native-snackbar';
 
 const theme = {
   Button: {
@@ -18,16 +19,8 @@ const theme = {
   },
 };
 
-const Msg = {
-  name: 'Msg',
-  properties: {
-    timecode: 'int',
-    msg: 'string',
-  },
-};
-
 const Stack = createStackNavigator();
-const client = new Mqtt.Client('tcp://appservers.ddns.net:1883');
+const client = new Mqtt.Client('tcp://appservers1.ddns.net:1883');
 
 function encode_mqtt(value: string) {
   return Buffer.from(value);
@@ -91,7 +84,6 @@ const Home = () => {
 
   // Initialize Mqtt Client
   useEffect(() => {
-    InsertData();
     AddFireListeners();
 
     client.connect(
@@ -101,44 +93,42 @@ const Home = () => {
         password: 'hackerton',
         autoReconnect: true,
       },
-      (error) => {
-        console.log(`MQTT Connect: ${error}`);
-      },
+      (error) => {},
     );
 
-    console.log(client);
-
-    client.on(Mqtt.Event.Error, (error) => {
-      console.log('MQTT Error Event:', error);
+    client.on(Mqtt.Event.Connect, (error) => {
+      Snackbar.show({
+        text: 'Device is connected to MQTT',
+        duration: Snackbar.LENGTH_SHORT,
+      });
     });
 
-    // return function cleanup() {
-    //   console.log('Cleanup');
-    //   client.disconnect();
-    // };
-  }, []);
-
-  const InsertData = () => {
-    firestore()
-      .collection('notification')
-      .orderBy('timecode', 'desc')
-      .get()
-      .then((snapshot) => {
-        let array = [];
-
-        snapshot.forEach((document) => {
-          array.push(document.data());
-        });
-
-        setData([...array]);
+    client.on(Mqtt.Event.Error, (error) => {
+      Snackbar.show({
+        text: 'Error occured with MQTT',
+        duration: Snackbar.LENGTH_LONG,
       });
-  };
+    });
+
+    client.on(Mqtt.Event.Disconnect, (error) => {
+      Snackbar.show({
+        text: 'MQTT is disconnected',
+        duration: Snackbar.LENGTH_SHORT,
+      });
+    });
+  }, []);
 
   const AddFireListeners = () => {
     firestore()
       .collection('notification')
       .onSnapshot((snapshot) => {
-        InsertData();
+        let msgs = [];
+
+        snapshot.forEach((document) => {
+          msgs.push(document.data());
+        });
+
+        setData(msgs);
       });
   };
 
@@ -152,13 +142,29 @@ const Home = () => {
   };
 
   const OnSecurity = () => {
-    client.publish('prodnotif/1', Buffer.from('O'), 2);
-    Alert.alert('Security ON');
+    try {
+      client.publish('prodnotif/1', Buffer.from('O'), 2);
+      Alert.alert('Security ON');
+    } catch (error) {
+      Snackbar.show({
+        text:
+          'Failed to switch ON. MQTT disconnected, please make mqtt server is reachable.',
+        duration: Snackbar.LENGTH_LONG,
+      });
+    }
   };
 
   const OffSecurity = () => {
-    client.publish('prodnotif/1', Buffer.from('F'), 2);
-    Alert.alert('Security OFF');
+    try {
+      client.publish('prodnotif/1', Buffer.from('F'), 2);
+      Alert.alert('Security OFF');
+    } catch (error) {
+      Snackbar.show({
+        text:
+          'Failed to switch OFF. MQTT disconnected, please make mqtt server is reachable.',
+        duration: Snackbar.LENGTH_LONG,
+      });
+    }
   };
 
   const list_item = data ? data : null;
